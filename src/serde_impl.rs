@@ -1,4 +1,12 @@
-use crate::{arena::{Arena, Entry, DEFAULT_CAPACITY}, generation::GenerationalIndex, index::ArenaIndex, Vec};
+use crate::{arena::{Arena, Entry, DEFAULT_CAPACITY}, generation::GenerationalIndex, index::ArenaIndex};
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        use std::vec::Vec;
+    } else {
+        use alloc::vec::Vec;
+    }
+}
+use im::Vector;
 use core::fmt;
 use core::iter;
 use core::marker::PhantomData;
@@ -106,7 +114,7 @@ where
         }
 
         Ok(Arena {
-            items,
+            items: Vector::from(items),
             generation,
             free_list_head,
             len,

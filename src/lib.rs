@@ -153,14 +153,13 @@ extern crate num_traits;
 extern crate cfg_if;
 #[cfg(feature = "serde")]
 extern crate serde;
+extern crate im;
 
 cfg_if! {
     if #[cfg(feature = "std")] {
         extern crate std;
-        use std::vec::{self, Vec};
     } else {
         extern crate alloc;
-        use alloc::vec::{self, Vec};
     }
 }
 
