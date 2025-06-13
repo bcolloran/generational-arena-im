@@ -1,4 +1,4 @@
-use super::{Arena, GenerationalIndex, ArenaIndex, Entry, Vec, DEFAULT_CAPACITY};
+use crate::{arena::{Arena, Entry, DEFAULT_CAPACITY}, generation::GenerationalIndex, index::ArenaIndex, Vec};
 use core::fmt;
 use core::iter;
 use core::marker::PhantomData;
