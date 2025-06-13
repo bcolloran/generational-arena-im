@@ -133,14 +133,6 @@ currently requires nightly Rust and `feature(alloc)` to get access to `Vec`.
 typed-generational-arena = { version = "0.2", default-features = false }
 ```
 
-### Serialization and Deserialization with [`serde`](https://crates.io/crates/serde)
-
-To enable serialization/deserialization support, enable the "serde" feature.
-
-```toml
-[dependencies]
-typed-generational-arena = { version = "0.2", features = ["serde"] }
-```
  */
 
 #![forbid(unsafe_code, missing_docs, missing_debug_implementations)]
@@ -151,8 +143,6 @@ extern crate nonzero_ext;
 extern crate num_traits;
 #[macro_use]
 extern crate cfg_if;
-#[cfg(feature = "serde")]
-extern crate serde;
 extern crate im;
 
 cfg_if! {
@@ -163,8 +153,6 @@ cfg_if! {
     }
 }
 
-#[cfg(feature = "serde")]
-mod serde_impl;
 mod presets;
 
 pub use presets::*;
