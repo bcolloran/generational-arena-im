@@ -1,0 +1,28 @@
+name: Clone QuickChecks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  clone_quickchecks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - name: Run clone quickchecks
+        run: cargo test --test clone_quickchecks -- --nocapture
