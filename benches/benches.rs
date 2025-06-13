@@ -13,14 +13,14 @@ use typed_generational_arena::{
 use std::hint::black_box;
 
 #[allow(dead_code)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Small(usize);
 
 #[allow(dead_code)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Big([usize; 32]);
 
-fn insert<T: Default>(n: usize) {
+fn insert<T: Default + Clone>(n: usize) {
     let mut arena = Arena::<T>::new();
     for _ in 0..n {
         let idx = arena.insert(Default::default());
@@ -28,19 +28,19 @@ fn insert<T: Default>(n: usize) {
     }
 }
 
-fn lookup<T>(arena: &Arena<T>, idx: Index<T>, n: usize) {
+fn lookup<T: Clone>(arena: &Arena<T>, idx: Index<T>, n: usize) {
     for _ in 0..n {
         black_box(&arena[idx]);
     }
 }
 
-fn collect<T>(arena: &Arena<T>, n: usize) {
+fn collect<T: Clone>(arena: &Arena<T>, n: usize) {
     for _ in 0..n {
         black_box(arena.iter().collect::<Vec<_>>());
     }
 }
 
-fn u32_insert<T: Default>(n: usize) {
+fn u32_insert<T: Default + Clone>(n: usize) {
     let mut arena = SmallArena::<T>::new();
     for _ in 0..n {
         let idx = arena.insert(Default::default());
@@ -48,19 +48,19 @@ fn u32_insert<T: Default>(n: usize) {
     }
 }
 
-fn u32_lookup<T>(arena: &SmallArena<T>, idx: SmallIndex<T>, n: usize) {
+fn u32_lookup<T: Clone>(arena: &SmallArena<T>, idx: SmallIndex<T>, n: usize) {
     for _ in 0..n {
         black_box(&arena[idx]);
     }
 }
 
-fn u32_collect<T>(arena: &SmallArena<T>, n: usize) {
+fn u32_collect<T: Clone>(arena: &SmallArena<T>, n: usize) {
     for _ in 0..n {
         black_box(arena.iter().collect::<Vec<_>>());
     }
 }
 
-fn slab_insert<T: Default>(n: usize) {
+fn slab_insert<T: Default + Clone>(n: usize) {
     let mut slab = Slab::<T>::new();
     for _ in 0..n {
         let idx = slab.insert(Default::default());
@@ -68,19 +68,19 @@ fn slab_insert<T: Default>(n: usize) {
     }
 }
 
-fn slab_lookup<T>(slab: &Slab<T>, idx: SlabIndex<T>, n: usize) {
+fn slab_lookup<T: Clone>(slab: &Slab<T>, idx: SlabIndex<T>, n: usize) {
     for _ in 0..n {
         black_box(&slab[idx]);
     }
 }
 
-fn slab_collect<T>(slab: &Slab<T>, n: usize) {
+fn slab_collect<T: Clone>(slab: &Slab<T>, n: usize) {
     for _ in 0..n {
         black_box(slab.iter().collect::<Vec<_>>());
     }
 }
 
-fn u32_slab_insert<T: Default>(n: usize) {
+fn u32_slab_insert<T: Default + Clone>(n: usize) {
     let mut slab = SmallSlab::<T>::new();
     for _ in 0..n {
         let idx = slab.insert(Default::default());
@@ -88,19 +88,19 @@ fn u32_slab_insert<T: Default>(n: usize) {
     }
 }
 
-fn u32_slab_lookup<T>(slab: &SmallSlab<T>, idx: SmallSlabIndex<T>, n: usize) {
+fn u32_slab_lookup<T: Clone>(slab: &SmallSlab<T>, idx: SmallSlabIndex<T>, n: usize) {
     for _ in 0..n {
         black_box(&slab[idx]);
     }
 }
 
-fn u32_slab_collect<T>(slab: &SmallSlab<T>, n: usize) {
+fn u32_slab_collect<T: Clone>(slab: &SmallSlab<T>, n: usize) {
     for _ in 0..n {
         black_box(slab.iter().collect::<Vec<_>>());
     }
 }
 
-fn ptr_slab_insert<T: Default>(n: usize) {
+fn ptr_slab_insert<T: Default + Clone>(n: usize) {
     let mut slab = PtrSlab::<T>::new();
     for _ in 0..n {
         let idx = slab.insert(Default::default());
@@ -108,19 +108,19 @@ fn ptr_slab_insert<T: Default>(n: usize) {
     }
 }
 
-fn ptr_slab_lookup<T>(slab: &PtrSlab<T>, idx: PtrSlabIndex<T>, n: usize) {
+fn ptr_slab_lookup<T: Clone>(slab: &PtrSlab<T>, idx: PtrSlabIndex<T>, n: usize) {
     for _ in 0..n {
         black_box(&slab[idx]);
     }
 }
 
-fn ptr_slab_collect<T>(slab: &PtrSlab<T>, n: usize) {
+fn ptr_slab_collect<T: Clone>(slab: &PtrSlab<T>, n: usize) {
     for _ in 0..n {
         black_box(slab.iter().collect::<Vec<_>>());
     }
 }
 
-fn u32_ptr_slab_insert<T: Default>(n: usize) {
+fn u32_ptr_slab_insert<T: Default + Clone>(n: usize) {
     let mut slab = SmallPtrSlab::<T>::new();
     for _ in 0..n {
         let idx = slab.insert(Default::default());
@@ -128,13 +128,13 @@ fn u32_ptr_slab_insert<T: Default>(n: usize) {
     }
 }
 
-fn u32_ptr_slab_lookup<T>(slab: &SmallPtrSlab<T>, idx: SmallPtrSlabIndex<T>, n: usize) {
+fn u32_ptr_slab_lookup<T: Clone>(slab: &SmallPtrSlab<T>, idx: SmallPtrSlabIndex<T>, n: usize) {
     for _ in 0..n {
         black_box(&slab[idx]);
     }
 }
 
-fn u32_ptr_slab_collect<T>(slab: &SmallPtrSlab<T>, n: usize) {
+fn u32_ptr_slab_collect<T: Clone>(slab: &SmallPtrSlab<T>, n: usize) {
     for _ in 0..n {
         black_box(slab.iter().collect::<Vec<_>>());
     }

@@ -1,14 +1,15 @@
-use crate::{vec, Vec};
-use core::{cmp, iter::{self, FusedIterator, FromIterator}, mem, slice, ops};
+use im::vector::{ConsumingIter, Iter as ImIter, IterMut as ImIterMut};
+use im::Vector;
+use core::{cmp, iter::{self, FusedIterator, FromIterator}, mem, ops};
 use crate::index::{ArenaIndex, Index};
 use crate::generation::{FixedGenerationalIndex, GenerationalIndex};
 
 ///
 /// [See the module-level documentation for example usage and motivation.](./index.html)
 #[derive(Clone, Debug)]
-pub struct Arena<T, I = usize, G = usize> {
+pub struct Arena<T: Clone, I: Clone = usize, G: Clone = usize> {
     // It is a breaking change to modify these three members, as they are needed for serialization
-    items: Vec<Entry<T, I, G>>,
+    items: Vector<Entry<T, I, G>>,
     generation: G,
     len: usize,
     free_list_head: Option<I>,
@@ -37,7 +38,7 @@ enum Entry<T, I = usize, G = u64> {
 
 const DEFAULT_CAPACITY: usize = 4;
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// Constructs a new, empty `Arena`.
     ///
     /// # Examples
@@ -74,7 +75,7 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     pub fn with_capacity(n: usize) -> Arena<T, I, G> {
         let n = cmp::max(n, 1);
         let mut arena = Arena {
-            items: Vec::new(),
+            items: Vector::new(),
             generation: G::first_generation(),
             free_list_head: None,
             len: 0,
@@ -99,20 +100,11 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// assert_eq!(arena.capacity(), 2);
     /// ```
     pub fn clear(&mut self) {
+        let cap = self.items.len();
         self.items.clear();
-
-        let end = self.items.capacity();
-        self.items.extend((0..end).map(|i| {
-            if i == end - 1 {
-                Entry::Free { next_free: None }
-            } else {
-                Entry::Free {
-                    next_free: Some(I::from_idx(i + 1)),
-                }
-            }
-        }));
-        self.free_list_head = Some(I::from_idx(0));
+        self.free_list_head = None;
         self.len = 0;
+        self.reserve(cap);
     }
 
     /// Attempts to insert `value` into the arena using existing capacity.
@@ -280,74 +272,25 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use typed_generational_arena::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// let idx1 = arena.insert(0);
     /// let idx2 = arena.insert(1);
     ///
-    /// {
-    ///     let (item1, item2) = arena.get2_mut(idx1, idx2);
-    ///
-    ///     *item1.unwrap() = 3;
-    ///     *item2.unwrap() = 4;
-    /// }
-    ///
-    /// assert_eq!(arena[idx1], 3);
-    /// assert_eq!(arena[idx2], 4);
+    /// // `get2_mut` is unavailable when using `im::Vector` storage.
     /// ```
-    pub fn get2_mut(
-        &mut self,
-        i1: Index<T, I, G>,
-        i2: Index<T, I, G>,
-    ) -> (Option<&mut T>, Option<&mut T>) {
-        let len = self.items.len();
-        let idx = (i1.index.to_idx(), i2.index.to_idx());
-        let gen = (i1.generation, i2.generation);
-
-        if idx.0 == idx.1 {
-            assert!(gen.0 != gen.1);
-
-            if gen.1.generation_lt(&gen.0) {
-                return (self.get_mut(i1), None);
-            }
-            return (None, self.get_mut(i2));
-        }
-
-        if idx.0 >= len {
-            return (None, self.get_mut(i2));
-        } else if idx.1 >= len {
-            return (self.get_mut(i1), None);
-        }
-
-        let (raw_item1, raw_item2) = {
-            let (xs, ys) = self.items.split_at_mut(cmp::max(idx.0, idx.1));
-            if idx.0 < idx.1 {
-                (&mut xs[idx.0], &mut ys[0])
-            } else {
-                (&mut ys[0], &mut xs[idx.1])
-            }
-        };
-
-        let item1 = match raw_item1 {
-            Entry::Occupied {
-                generation,
-                ref mut value,
-            } if *generation == gen.0 => Some(value),
-            _ => None,
-        };
-
-        let item2 = match raw_item2 {
-            Entry::Occupied {
-                generation,
-                ref mut value,
-            } if *generation == gen.1 => Some(value),
-            _ => None,
-        };
-
-        (item1, item2)
-    }
+    // pub fn get2_mut(
+    //     &mut self,
+    //     i1: Index<T, I, G>,
+    //     i2: Index<T, I, G>,
+    // ) -> (Option<&mut T>, Option<&mut T>) {
+    //     // This method relied on `Vec::split_at_mut` to obtain two mutable
+    //     // references simultaneously. `im::Vector` does not offer a safe
+    //     // equivalent, and implementing this behavior would require unsafe
+    //     // code, so it is disabled when using `im::Vector`.
+    // }
 
     /// Get the length of this arena.
     ///
@@ -442,18 +385,14 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
         let start = self.items.len();
         let end = self.items.len() + additional_capacity;
         let old_head = self.free_list_head;
-        self.items.reserve_exact(additional_capacity);
-        self.items.extend((start..end).map(|i| {
-            if i == end - 1 {
-                Entry::Free {
-                    next_free: old_head,
-                }
+        for i in start..end {
+            let entry = if i == end - 1 {
+                Entry::Free { next_free: old_head }
             } else {
-                Entry::Free {
-                    next_free: Some(I::from_idx(i + 1)),
-                }
-            }
-        }));
+                Entry::Free { next_free: Some(I::from_idx(i + 1)) }
+            };
+            self.items.push_back(entry);
+        }
         self.free_list_head = Some(I::from_idx(start));
     }
 
@@ -537,13 +476,18 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// assert!(arena.get(idx_2).is_none());
     /// ```
     pub fn drain(&mut self) -> Drain<T, I, G> {
+        let old_items = mem::take(&mut self.items);
+        let cap = old_items.len();
+        self.len = 0;
+        self.free_list_head = None;
+        self.reserve(cap);
         Drain {
-            inner: self.items.drain(..).enumerate(),
+            inner: old_items.into_iter().enumerate(),
         }
     }
 }
 
-impl<T, I: ArenaIndex, G: GenerationalIndex> Arena<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: GenerationalIndex> Arena<T, I, G> {
     /// Remove the element at index `i` from the arena.
     ///
     /// If the element at index `i` is still in the arena, then it is
@@ -628,7 +572,7 @@ impl<T, I: ArenaIndex, G: GenerationalIndex> Arena<T, I, G> {
     }
 }
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for Arena<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for Arena<T, I, G> {
     type Item = T;
     type IntoIter = IntoIter<T, I, G>;
     fn into_iter(self) -> Self::IntoIter {
@@ -659,13 +603,18 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for Arena<T, I, G
 ///     assert!(value < 100);
 /// }
 /// ```
-#[derive(Clone, Debug)]
 pub struct IntoIter<T, I: ArenaIndex, G: FixedGenerationalIndex> {
     len: usize,
-    inner: vec::IntoIter<Entry<T, I, G>>,
+    inner: ConsumingIter<Entry<T, I, G>>,
 }
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Iterator for IntoIter<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug for IntoIter<T, I, G> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("IntoIter").field("len", &self.len).finish()
+    }
+}
+
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Iterator for IntoIter<T, I, G> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -689,7 +638,7 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> Iterator for IntoIter<T, I, G>
     }
 }
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> DoubleEndedIterator for IntoIter<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> DoubleEndedIterator for IntoIter<T, I, G> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
             match self.inner.next_back() {
@@ -707,15 +656,15 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> DoubleEndedIterator for IntoIt
     }
 }
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> ExactSizeIterator for IntoIter<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ExactSizeIterator for IntoIter<T, I, G> {
     fn len(&self) -> usize {
         self.len
     }
 }
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> FusedIterator for IntoIter<T, I, G> {}
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> FusedIterator for IntoIter<T, I, G> {}
 
-impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'a Arena<T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'a Arena<T, I, G> {
     type Item = (Index<T, I, G>, &'a T);
     type IntoIter = Iter<'a, T, I, G>;
     fn into_iter(self) -> Self::IntoIter {
@@ -743,13 +692,18 @@ impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'a Arena
 ///     println!("{} is at index {:?}", value, idx);
 /// }
 /// ```
-#[derive(Clone, Debug)]
 pub struct Iter<'a, T: 'a, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> {
     len: usize,
-    inner: iter::Enumerate<slice::Iter<'a, Entry<T, I, G>>>,
+    inner: iter::Enumerate<ImIter<'a, Entry<T, I, G>>>,
 }
 
-impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for Iter<'a, T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug for Iter<'a, T, I, G> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Iter").field("len", &self.len).finish()
+    }
+}
+
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for Iter<'a, T, I, G> {
     type Item = (Index<T, I, G>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -780,7 +734,7 @@ impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for Ite
     }
 }
 
-impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedIterator
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedIterator
     for Iter<'a, T, I, G>
 {
     fn next_back(&mut self) -> Option<Self::Item> {
@@ -807,15 +761,15 @@ impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedItera
     }
 }
 
-impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> ExactSizeIterator for Iter<'a, T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ExactSizeIterator for Iter<'a, T, I, G> {
     fn len(&self) -> usize {
         self.len
     }
 }
 
-impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> FusedIterator for Iter<'a, T, I, G> {}
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> FusedIterator for Iter<'a, T, I, G> {}
 
-impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'a mut Arena<T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'a mut Arena<T, I, G> {
     type Item = (Index<T, I, G>, &'a mut T);
     type IntoIter = IterMut<'a, T, I, G>;
     fn into_iter(self) -> Self::IntoIter {
@@ -843,13 +797,18 @@ impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'a mut A
 ///     *value += 5;
 /// }
 /// ```
-#[derive(Debug)]
 pub struct IterMut<'a, T: 'a, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> {
     len: usize,
-    inner: iter::Enumerate<slice::IterMut<'a, Entry<T, I, G>>>,
+    inner: iter::Enumerate<ImIterMut<'a, Entry<T, I, G>>>,
 }
 
-impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for IterMut<'a, T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug for IterMut<'a, T, I, G> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("IterMut").field("len", &self.len).finish()
+    }
+}
+
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for IterMut<'a, T, I, G> {
     type Item = (Index<T, I, G>, &'a mut T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -880,7 +839,7 @@ impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for Ite
     }
 }
 
-impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedIterator
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedIterator
     for IterMut<'a, T, I, G>
 {
     fn next_back(&mut self) -> Option<Self::Item> {
@@ -907,7 +866,7 @@ impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedItera
     }
 }
 
-impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> ExactSizeIterator
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> ExactSizeIterator
     for IterMut<'a, T, I, G>
 {
     fn len(&self) -> usize {
@@ -915,7 +874,7 @@ impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> ExactSizeIterato
     }
 }
 
-impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> FusedIterator
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> FusedIterator
     for IterMut<'a, T, I, G>
 {
 }
@@ -945,12 +904,17 @@ impl<'a, T, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> FusedIterator
 /// assert!(arena.get(idx_1).is_none());
 /// assert!(arena.get(idx_2).is_none());
 /// ```
-#[derive(Debug)]
-pub struct Drain<'a, T: 'a, I: ArenaIndex, G: FixedGenerationalIndex> {
-    inner: iter::Enumerate<vec::Drain<'a, Entry<T, I, G>>>,
+pub struct Drain<T, I: ArenaIndex, G: FixedGenerationalIndex> {
+    inner: iter::Enumerate<ConsumingIter<Entry<T, I, G>>>,
 }
 
-impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> Iterator for Drain<'a, T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug for Drain<T, I, G> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Drain").finish()
+    }
+}
+
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Iterator for Drain<T, I, G> {
     type Item = (Index<T, I, G>, T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -967,7 +931,7 @@ impl<'a, T, I: ArenaIndex, G: FixedGenerationalIndex> Iterator for Drain<'a, T, 
     }
 }
 
-impl<T, Idx: ArenaIndex, G: FixedGenerationalIndex> Extend<T> for Arena<T, Idx, G> {
+impl<T: Clone, Idx: ArenaIndex, G: FixedGenerationalIndex> Extend<T> for Arena<T, Idx, G> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         for t in iter {
             self.insert(t);
@@ -975,7 +939,7 @@ impl<T, Idx: ArenaIndex, G: FixedGenerationalIndex> Extend<T> for Arena<T, Idx, 
     }
 }
 
-impl<T, Idx: ArenaIndex, G: FixedGenerationalIndex> FromIterator<T> for Arena<T, Idx, G> {
+impl<T: Clone, Idx: ArenaIndex, G: FixedGenerationalIndex> FromIterator<T> for Arena<T, Idx, G> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let iter = iter.into_iter();
         let (lower, upper) = iter.size_hint();
@@ -987,7 +951,7 @@ impl<T, Idx: ArenaIndex, G: FixedGenerationalIndex> FromIterator<T> for Arena<T,
     }
 }
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> ops::Index<Index<T, I, G>> for Arena<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::Index<Index<T, I, G>> for Arena<T, I, G> {
     type Output = T;
 
     fn index(&self, index: Index<T, I, G>) -> &Self::Output {
@@ -995,7 +959,7 @@ impl<T, I: ArenaIndex, G: FixedGenerationalIndex> ops::Index<Index<T, I, G>> for
     }
 }
 
-impl<T, I: ArenaIndex, G: FixedGenerationalIndex> ops::IndexMut<Index<T, I, G>> for Arena<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::IndexMut<Index<T, I, G>> for Arena<T, I, G> {
     fn index_mut(&mut self, index: Index<T, I, G>) -> &mut Self::Output {
         self.get_mut(index).expect("No element at index")
     }
