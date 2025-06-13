@@ -1,0 +1,38 @@
+[package]
+authors = [
+  "Nick Fitzgerald <fitzgen@gmail.com>",
+  "Jad Elkhaleq Ghalayini <jad.ghalayini@mail.utoronto.ca>"
+  ]
+categories = ["memory-management", "no-std", "rust-patterns", "data-structures"]
+description = "A safe arena allocator that supports deletion without suffering from the ABA problem by using generational indices. Now with typed indices and custom integer types for generations!"
+keywords = ["generation", "index", "arena", "ecs"]
+license = "MPL-2.0"
+name = "typed-generational-arena"
+readme = "./README.md"
+repository = "https://gitlab.com/tekne/typed-generational-arena"
+version = "0.2.6"
+
+[dependencies]
+cfg-if = "0.1.5"
+serde = { version = "1.0", optional = true, default-features = false }
+num-traits = { version = "0.2", default-features = false }
+nonzero_ext = "0.1"
+
+[dev-dependencies]
+quickcheck = "1.0"
+criterion = "0.5"
+serde_test = "1.0"
+bincode = "1.0"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+
+[[bench]]
+name = "benches"
+path = "benches/benches.rs"
+harness = false
+
+[features]
+default = ["std"]
+std = ["num-traits/std"]
+
+[profile.bench]
+debug = true
