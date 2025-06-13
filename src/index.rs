@@ -26,7 +26,6 @@ impl<T: ToPrimitive + FromPrimitive + Copy> ArenaIndex for T {
 
 /// An arena index which is always nonzero. Useful for Option<T> size optimizations
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NonZeroIndex<T: NonZeroAble> {
     idx: T::NonZero,
 }
@@ -63,13 +62,11 @@ where
 /// let idx = arena.insert(123);
 /// assert_eq!(arena[idx], 123);
 /// ```
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Index<T, I = usize, G = u64> {
     /// The array index of the given value
     pub(crate) index: I,
     /// The generation of the given value
     pub(crate) generation: G,
-    #[cfg_attr(feature = "serde", serde(skip))]
     _phantom: core::marker::PhantomData<fn() -> T>,
 }
 

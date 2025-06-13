@@ -19,7 +19,6 @@ pub trait GenerationalIndex: FixedGenerationalIndex {
 
 /// A generation counter which is always nonzero. Useful for size optimizations on Option<Index>
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NonzeroGeneration<T: NonZeroAble> {
     gen: T::NonZero,
 }
@@ -65,7 +64,6 @@ where
 /// A wrapping generation counter which is always nonzero.
 /// Useful for size optimizations on Option<Index>
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NonzeroWrapGeneration<T: NonZeroAble> {
     gen: T::NonZero,
 }
@@ -135,7 +133,6 @@ impl<T: Eq + One + AddAssign + Default + PartialOrd + Copy> GenerationalIndex fo
 
 /// If this is used as a generational index, then the arena ignores generation
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IgnoreGeneration;
 
 impl FixedGenerationalIndex for IgnoreGeneration {
@@ -161,7 +158,6 @@ impl IgnoredGeneration for IgnoreGeneration {}
 /// If this is used as a generational index, then the arena is no longer generational
 /// and does not allow element removal
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DisableRemoval;
 
 impl FixedGenerationalIndex for DisableRemoval {

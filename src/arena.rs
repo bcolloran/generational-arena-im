@@ -36,7 +36,7 @@ enum Entry<T, I = usize, G = u64> {
 /// assert_eq!(arena[idx], 123);
 /// ```
 
-const DEFAULT_CAPACITY: usize = 4;
+pub(crate) const DEFAULT_CAPACITY: usize = 4;
 
 impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// Constructs a new, empty `Arena`.
