@@ -17,6 +17,7 @@ cfg-if = "1.0"
 serde = { version = "1.0", optional = true, default-features = false }
 num-traits = { version = "0.2", default-features = false }
 nonzero_ext = "0.3"
+im = "15.1.0"
 
 [dev-dependencies]
 quickcheck = "1.0"
