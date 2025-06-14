@@ -38,6 +38,7 @@ struct Snapshot {
     live: Vec<(Index<usize>, usize)>,
     later: Vec<(Index<usize>, usize)>, // indices and values inserted after this snapshot
 }
+// Property: cloned snapshots must preserve and ignore future operations on the original arena.
 
 quickcheck! {
     fn snapshots_survive_ops(ops: Vec<Op>) -> bool {

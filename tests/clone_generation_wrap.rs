@@ -2,6 +2,7 @@ extern crate typed_generational_arena;
 
 use typed_generational_arena::{TinyWrapArena, TinyWrapIndex};
 
+// Clone the arena repeatedly while inserting and removing elements until generations wrap, ensuring each snapshot retains the expected data.
 #[test]
 fn clone_insert_remove_until_wrap() {
     const WRAP_LIMIT: usize = (std::u16::MAX as usize) + 10;

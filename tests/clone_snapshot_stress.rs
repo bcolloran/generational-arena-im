@@ -2,6 +2,7 @@ extern crate typed_generational_arena;
 
 use typed_generational_arena::{NanoArena, SmallArena, StandardArena, TinyArena, TinyWrapArena};
 
+// Macro to stress-test snapshot cloning for various arena types.
 macro_rules! snapshot_stress_test {
     ($name:ident, $arena_ty:ty) => {
         #[test]
@@ -57,8 +58,13 @@ macro_rules! snapshot_stress_test {
     };
 }
 
+// Stress test snapshot behavior in NanoArena
 snapshot_stress_test!(nano_snapshot_stress, NanoArena<usize>);
+// Stress test snapshot behavior in SmallArena
 snapshot_stress_test!(small_snapshot_stress, SmallArena<usize>);
+// Stress test snapshot behavior in StandardArena
 snapshot_stress_test!(standard_snapshot_stress, StandardArena<usize>);
+// Stress test snapshot behavior in TinyArena
 snapshot_stress_test!(tiny_snapshot_stress, TinyArena<usize>);
+// Stress test snapshot behavior in TinyWrapArena
 snapshot_stress_test!(tinywrap_snapshot_stress, TinyWrapArena<usize>);

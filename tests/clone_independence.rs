@@ -1,6 +1,7 @@
 extern crate typed_generational_arena;
 use typed_generational_arena::StandardArena as Arena;
 
+// Ensure that mutations to a cloned arena do not affect the original and vice versa.
 #[test]
 fn cloned_arenas_are_independent() {
     let mut arena = Arena::new();

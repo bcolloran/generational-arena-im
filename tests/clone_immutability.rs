@@ -1,6 +1,7 @@
 extern crate typed_generational_arena;
 use typed_generational_arena::StandardArena as Arena;
 
+// Cloning should freeze a snapshot so later modifications do not affect it.
 #[test]
 fn snapshots_are_immutable_after_clone() {
     let mut arena = Arena::new();
@@ -21,6 +22,7 @@ fn snapshots_are_immutable_after_clone() {
     assert_eq!(snap1[idx], 1);
     assert_eq!(snap2[idx], 2);
 }
+// Snapshots should remain consistent through multiple arena changes.
 
 #[test]
 fn snapshots_survive_multiple_modifications() {
@@ -38,6 +40,7 @@ fn snapshots_survive_multiple_modifications() {
     assert_eq!(snap_update[first], 11);
     assert!(snap_remove.get(first).is_none());
 }
+// Verify snapshots remain valid after retain and drain operations.
 #[test]
 fn snapshots_after_retain_and_drain() {
     let mut arena = Arena::new();

@@ -6,6 +6,7 @@ use typed_generational_arena::NanoArena as Arena;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
+// Property: inserted elements remain accessible.
 quickcheck! {
     fn always_contains_inserted_elements(elems: Vec<usize>) -> bool {
         let mut arena = Arena::new();
@@ -16,6 +17,7 @@ quickcheck! {
         indices.into_iter().all(|i| arena.contains(i))
     }
 }
+// Property: removed elements are no longer accessible.
 
 quickcheck! {
     fn never_contains_deleted_elements(elems: Vec<usize>) -> bool {
@@ -29,6 +31,7 @@ quickcheck! {
         }
         indices.into_iter().all(|i| !arena.contains(i))
     }
+// Property: re-inserting after deletion yields fresh indices.
 }
 
 quickcheck! {
@@ -49,6 +52,7 @@ quickcheck! {
         new_indices.into_iter().enumerate().all(|(i, idx)| {
             !arena.contains(indices[i]) && arena.remove(idx).unwrap() == elems[i]
         })
+// Property: operations maintain consistent state.
     }
 }
 
@@ -88,6 +92,7 @@ quickcheck! {
         for rem in remaining {
             let i = live_indices.iter().position(|&(_, v)| v == rem).unwrap();
             live_indices.remove(i);
+// Property: iterator reports all elements.
         }
     }
 }
@@ -96,6 +101,7 @@ quickcheck! {
     fn iter(elems: BTreeSet<usize>) -> bool {
         let arena = Arena::from_iter(elems.iter().take(std::u8::MAX as usize).cloned());
         arena.iter().all(|(idx, value)| {
+// Property: iter_mut can modify all elements.
             elems.contains(value) && arena.get(idx) == Some(value)
         })
     }
@@ -108,6 +114,7 @@ quickcheck! {
             *value = value.wrapping_add(1);
         }
         arena.iter().all(|(idx, value)| {
+// Property: from_iter then into_iter preserves the set.
             let orig_value = value.wrapping_sub(1);
             elems.contains(&orig_value) && arena.get(idx) == Some(value)
         })
