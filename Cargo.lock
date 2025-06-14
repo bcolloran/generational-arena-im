@@ -218,6 +218,7 @@ dependencies = [
  "bitmaps",
  "rand_core",
  "rand_xoshiro",
+ "rayon",
  "sized-chunks",
  "typenum",
  "version_check",
@@ -529,6 +530,7 @@ dependencies = [
  "nonzero_ext",
  "num-traits",
  "quickcheck",
+ "rayon",
 ]
 
 [[package]]
