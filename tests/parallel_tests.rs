@@ -1,3 +1,5 @@
+#![cfg(feature = "rayon")]
+
 extern crate typed_generational_arena;
 extern crate rayon;
 use typed_generational_arena::StandardArena as Arena;
