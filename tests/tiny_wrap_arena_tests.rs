@@ -156,3 +156,20 @@ fn clear() {
     assert_eq!(arena.capacity(), 4);
     assert_eq!(arena.len(), 0);
 }
+
+#[test]
+fn retain() {
+    let mut arena = Arena::new();
+    let a = arena.insert(1);
+    let b = arena.insert(2);
+    let c = arena.insert(3);
+
+    arena.retain(|_, v| *v % 2 == 1);
+
+    assert!(arena.contains(a));
+    assert!(arena.get(b).is_none());
+    assert!(arena.contains(c));
+    assert_eq!(arena[a], 1);
+    assert_eq!(arena[c], 3);
+    assert_eq!(arena.len(), 2);
+}

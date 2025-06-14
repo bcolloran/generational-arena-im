@@ -38,3 +38,30 @@ fn snapshots_survive_multiple_modifications() {
     assert_eq!(snap_update[first], 11);
     assert!(snap_remove.get(first).is_none());
 }
+#[test]
+fn snapshots_after_retain_and_drain() {
+    let mut arena = Arena::new();
+    let a = arena.insert(1);
+    let b = arena.insert(2);
+    let c = arena.insert(3);
+
+    let snap_full = arena.clone();
+
+    arena.retain(|_, v| *v % 2 == 0);
+    let snap_retained = arena.clone();
+
+    for _ in arena.drain() {}
+
+    assert_eq!(snap_full[a], 1);
+    assert_eq!(snap_full[b], 2);
+    assert_eq!(snap_full[c], 3);
+
+    assert!(snap_retained.get(a).is_none());
+    assert_eq!(snap_retained[b], 2);
+    assert!(snap_retained.get(c).is_none());
+
+    assert_eq!(arena.len(), 0);
+    assert!(arena.get(a).is_none());
+    assert!(arena.get(b).is_none());
+    assert!(arena.get(c).is_none());
+}
