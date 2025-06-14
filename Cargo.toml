@@ -17,6 +17,7 @@ cfg-if = "1.0"
 num-traits = { version = "0.2", default-features = false }
 nonzero_ext = "0.3"
 im = "15.1.0"
+rayon = { version = "1.10", optional = true }
 
 [dev-dependencies]
 quickcheck = "1.0"
@@ -30,6 +31,7 @@ harness = false
 [features]
 default = ["std"]
 std = ["num-traits/std"]
+rayon = ["im/rayon", "dep:rayon"]
 
 [profile.bench]
 debug = true
