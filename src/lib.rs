@@ -123,6 +123,23 @@ for (idx, value) in &arena {
 }
 ```
 
+### Snapshot immutability
+
+Cloning an arena is an `O(1)` operation that returns an immutable snapshot.
+Further mutations to the original arena do not affect snapshots.
+
+```rust
+use typed_generational_arena::StandardArena;
+
+let mut arena = StandardArena::new();
+let idx = arena.insert(1);
+let snapshot = arena.clone();
+
+*arena.get_mut(idx).unwrap() = 2;
+
+assert_eq!(snapshot[idx], 1);
+```
+
 ## `no_std`
 
 To enable `no_std` compatibility, disable the on-by-default "std" feature. This
