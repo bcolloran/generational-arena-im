@@ -28,4 +28,5 @@ jobs:
         run: cargo check --all-targets
       - name: Test
         run: cargo test --all
-
+      - name: Test Rayon
+        run: cargo test --features rayon
