@@ -1,10 +1,9 @@
+use crate::generation::{FixedGenerationalIndex, IgnoredGeneration};
 use core::cmp::Ordering;
 use core::fmt::Debug;
 use core::hash::Hash;
 use nonzero_ext::{NonZero, NonZeroAble};
 use num_traits::{FromPrimitive, ToPrimitive};
-use crate::generation::{FixedGenerationalIndex, IgnoredGeneration};
-
 
 /// A type which can be used as an index to an arena
 pub trait ArenaIndex: Copy {
@@ -82,6 +81,22 @@ impl<T, I: ArenaIndex + Copy, G: FixedGenerationalIndex + Copy> Index<T, I, G> {
     /// Get this index's generation
     pub fn gen(&self) -> G {
         self.generation
+    }
+
+    /// Get the raw index and generation as a tuple
+    #[inline]
+    pub fn to_raw(&self) -> (I, G) {
+        (self.index, self.generation)
+    }
+
+    /// Create a new index from a raw index and generation
+    #[inline]
+    pub fn from_raw(index: I, generation: G) -> Self {
+        Index {
+            index,
+            generation,
+            _phantom: core::marker::PhantomData,
+        }
     }
 }
 
