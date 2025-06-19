@@ -1,6 +1,6 @@
-extern crate typed_generational_arena;
+extern crate generational_arena_im;
 
-use typed_generational_arena::{NanoArena, SmallArena, StandardArena, TinyArena, TinyWrapArena};
+use generational_arena_im::{NanoArena, SmallArena, StandardArena, TinyArena, TinyWrapArena};
 
 macro_rules! snapshot_stress_test {
     ($name:ident, $arena_ty:ty) => {

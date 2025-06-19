@@ -1,8 +1,8 @@
 #![cfg(feature = "rayon")]
 
-extern crate typed_generational_arena;
+extern crate generational_arena_im;
 extern crate rayon;
-use typed_generational_arena::StandardArena as Arena;
+use generational_arena_im::StandardArena as Arena;
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 #[test]

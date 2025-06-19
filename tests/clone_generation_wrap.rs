@@ -1,6 +1,6 @@
-extern crate typed_generational_arena;
+extern crate generational_arena_im;
 
-use typed_generational_arena::{TinyWrapArena, TinyWrapIndex};
+use generational_arena_im::{TinyWrapArena, TinyWrapIndex};
 
 #[test]
 fn clone_insert_remove_until_wrap() {

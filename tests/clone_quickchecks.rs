@@ -1,9 +1,9 @@
-extern crate typed_generational_arena;
+extern crate generational_arena_im;
 #[macro_use]
 extern crate quickcheck;
 
-use typed_generational_arena::StandardArena as Arena;
-use typed_generational_arena::StandardIndex as Index;
+use generational_arena_im::StandardArena as Arena;
+use generational_arena_im::StandardIndex as Index;
 use quickcheck::{Arbitrary, Gen};
 
 #[derive(Clone, Debug)]

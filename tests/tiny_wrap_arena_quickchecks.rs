@@ -1,10 +1,10 @@
-extern crate typed_generational_arena;
+extern crate generational_arena_im;
 #[macro_use]
 extern crate quickcheck;
 
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
-use typed_generational_arena::TinyWrapArena as Arena;
+use generational_arena_im::TinyWrapArena as Arena;
 
 quickcheck! {
     fn always_contains_inserted_elements(elems: Vec<usize>) -> bool {

@@ -1,8 +1,8 @@
-extern crate typed_generational_arena;
+extern crate generational_arena_im;
 #[macro_use]
 extern crate quickcheck;
 
-use typed_generational_arena::NanoArena as Arena;
+use generational_arena_im::NanoArena as Arena;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 

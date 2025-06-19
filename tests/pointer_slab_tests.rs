@@ -1,5 +1,5 @@
-extern crate typed_generational_arena;
-use typed_generational_arena::PtrSlab as Slab;
+extern crate generational_arena_im;
+use generational_arena_im::PtrSlab as Slab;
 use std::collections::BTreeSet;
 
 #[test]

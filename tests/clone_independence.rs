@@ -1,5 +1,5 @@
-extern crate typed_generational_arena;
-use typed_generational_arena::StandardArena as Arena;
+extern crate generational_arena_im;
+use generational_arena_im::StandardArena as Arena;
 
 #[test]
 fn cloned_arenas_are_independent() {

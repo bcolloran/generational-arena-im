@@ -1,13 +1,13 @@
 #[macro_use]
 extern crate criterion;
-extern crate typed_generational_arena;
+extern crate generational_arena_im;
 
 use criterion::{BenchmarkId, Criterion, Throughput};
-use typed_generational_arena::{
+use generational_arena_im::{
     PtrSlab, PtrSlabIndex, SmallPtrSlab, SmallPtrSlabIndex, SmallSlab, SmallSlabIndex,
     StandardSlab as Slab, StandardSlabIndex as SlabIndex,
 };
-use typed_generational_arena::{
+use generational_arena_im::{
     SmallArena, SmallIndex, StandardArena as Arena, StandardIndex as Index,
 };
 use std::hint::black_box;

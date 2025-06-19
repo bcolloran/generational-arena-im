@@ -77,14 +77,14 @@ typed-generational-arena = "0.2"
 ```
 
 Then, import the crate and use one of the variations of the
-[`typed_generational_arena::Arena`](./struct.Arena.html) type!
-In these examples, we use `typed_generational_arena::StandardArena`,
+[`generational_arena_im::Arena`](./struct.Arena.html) type!
+In these examples, we use `generational_arena_im::StandardArena`,
 but you can use any combination of index and generation ID
 best fits your purposes.
 
 ```rust
-extern crate typed_generational_arena;
-use typed_generational_arena::StandardArena;
+extern crate generational_arena_im;
+use generational_arena_im::StandardArena;
 
 let mut arena = StandardArena::new();
 
@@ -129,7 +129,7 @@ Cloning an arena is an `O(1)` operation that returns an immutable snapshot.
 Further mutations to the original arena do not affect snapshots.
 
 ```rust
-use typed_generational_arena::StandardArena;
+use generational_arena_im::StandardArena;
 
 let mut arena = StandardArena::new();
 let idx = arena.insert(1);
@@ -176,13 +176,13 @@ mod presets;
 
 pub use presets::*;
 
+mod arena;
 mod generation;
 mod index;
-mod arena;
 
+pub use arena::{Arena, Drain, IntoIter, Iter, IterMut};
 pub use generation::{
-    FixedGenerationalIndex, GenerationalIndex, NonzeroGeneration,
-    NonzeroWrapGeneration, IgnoreGeneration, DisableRemoval, IgnoredGeneration,
+    DisableRemoval, FixedGenerationalIndex, GenerationalIndex, IgnoreGeneration, IgnoredGeneration,
+    NonzeroGeneration, NonzeroWrapGeneration,
 };
-pub use index::{ArenaIndex, NonZeroIndex, Index};
-pub use arena::{Arena, IntoIter, Iter, IterMut, Drain};
+pub use index::{ArenaIndex, Index, NonZeroIndex};

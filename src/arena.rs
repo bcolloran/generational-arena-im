@@ -1,8 +1,12 @@
+use crate::generation::{FixedGenerationalIndex, GenerationalIndex};
+use crate::index::{ArenaIndex, Index};
+use core::{
+    cmp,
+    iter::{self, FromIterator, FusedIterator},
+    mem, ops,
+};
 use im::vector::{ConsumingIter, Iter as ImIter, IterMut as ImIterMut};
 use im::Vector;
-use core::{cmp, iter::{self, FusedIterator, FromIterator}, mem, ops};
-use crate::index::{ArenaIndex, Index};
-use crate::generation::{FixedGenerationalIndex, GenerationalIndex};
 
 ///
 /// [See the module-level documentation for example usage and motivation.](./index.html)
@@ -29,7 +33,7 @@ enum Entry<T, I = usize, G = u64> {
 /// # Examples
 ///
 /// ```
-/// use typed_generational_arena::StandardArena;
+/// use generational_arena_im::StandardArena;
 ///
 /// let mut arena = StandardArena::new();
 /// let idx = arena.insert(123);
@@ -44,7 +48,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::<usize>::new();
     /// # let _ = arena;
@@ -60,7 +64,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::with_capacity(10);
     ///
@@ -89,7 +93,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::with_capacity(1);
     /// arena.insert(42);
@@ -118,7 +122,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     ///
@@ -162,7 +166,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     ///
@@ -193,7 +197,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// let idx = arena.insert(42);
@@ -214,7 +218,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// let idx = arena.insert(42);
@@ -241,7 +245,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// let idx = arena.insert(42);
@@ -273,7 +277,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```ignore
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// let idx1 = arena.insert(0);
@@ -299,7 +303,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// assert_eq!(arena.len(), 0);
@@ -322,7 +326,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// assert!(arena.is_empty());
@@ -346,7 +350,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::with_capacity(10);
     /// assert_eq!(arena.capacity(), 10);
@@ -374,7 +378,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::with_capacity(10);
     /// arena.reserve(5);
@@ -387,9 +391,13 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
         let old_head = self.free_list_head;
         for i in start..end {
             let entry = if i == end - 1 {
-                Entry::Free { next_free: old_head }
+                Entry::Free {
+                    next_free: old_head,
+                }
             } else {
-                Entry::Free { next_free: Some(I::from_idx(i + 1)) }
+                Entry::Free {
+                    next_free: Some(I::from_idx(i + 1)),
+                }
             };
             self.items.push_back(entry);
         }
@@ -405,7 +413,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// for i in 0..10 {
@@ -432,7 +440,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// for i in 0..10 {
@@ -461,7 +469,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// let idx_1 = arena.insert("hello");
@@ -496,7 +504,7 @@ impl<T: Clone, I: ArenaIndex, G: GenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut arena = StandardArena::new();
     /// let idx = arena.insert(42);
@@ -541,7 +549,7 @@ impl<T: Clone, I: ArenaIndex, G: GenerationalIndex> Arena<T, I, G> {
     /// # Examples
     ///
     /// ```
-    /// use typed_generational_arena::StandardArena;
+    /// use generational_arena_im::StandardArena;
     ///
     /// let mut crew = StandardArena::new();
     /// crew.extend(&["Jim Hawkins", "John Silver", "Alexander Smollett", "Israel Hands"]);
@@ -592,7 +600,7 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for Arena<
 /// # Examples
 ///
 /// ```
-/// use typed_generational_arena::StandardArena;
+/// use generational_arena_im::StandardArena;
 ///
 /// let mut arena = StandardArena::new();
 /// for i in 0..10 {
@@ -681,7 +689,7 @@ impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'
 /// # Examples
 ///
 /// ```
-/// use typed_generational_arena::StandardArena;
+/// use generational_arena_im::StandardArena;
 ///
 /// let mut arena = StandardArena::new();
 /// for i in 0..10 {
@@ -697,13 +705,17 @@ pub struct Iter<'a, T: 'a, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> {
     inner: iter::Enumerate<ImIter<'a, Entry<T, I, G>>>,
 }
 
-impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug for Iter<'a, T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug
+    for Iter<'a, T, I, G>
+{
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Iter").field("len", &self.len).finish()
     }
 }
 
-impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for Iter<'a, T, I, G> {
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator
+    for Iter<'a, T, I, G>
+{
     type Item = (Index<T, I, G>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -761,7 +773,9 @@ impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEnd
     }
 }
 
-impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ExactSizeIterator for Iter<'a, T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ExactSizeIterator
+    for Iter<'a, T, I, G>
+{
     fn len(&self) -> usize {
         self.len
     }
@@ -769,7 +783,9 @@ impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ExactSizeIterator f
 
 impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> FusedIterator for Iter<'a, T, I, G> {}
 
-impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'a mut Arena<T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator
+    for &'a mut Arena<T, I, G>
+{
     type Item = (Index<T, I, G>, &'a mut T);
     type IntoIter = IterMut<'a, T, I, G>;
     fn into_iter(self) -> Self::IntoIter {
@@ -786,7 +802,7 @@ impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> IntoIterator for &'
 /// # Examples
 ///
 /// ```
-/// use typed_generational_arena::StandardArena;
+/// use generational_arena_im::StandardArena;
 ///
 /// let mut arena = StandardArena::new();
 /// for i in 0..10 {
@@ -802,13 +818,17 @@ pub struct IterMut<'a, T: 'a, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex
     inner: iter::Enumerate<ImIterMut<'a, Entry<T, I, G>>>,
 }
 
-impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug for IterMut<'a, T, I, G> {
+impl<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> core::fmt::Debug
+    for IterMut<'a, T, I, G>
+{
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("IterMut").field("len", &self.len).finish()
     }
 }
 
-impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator for IterMut<'a, T, I, G> {
+impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator
+    for IterMut<'a, T, I, G>
+{
     type Item = (Index<T, I, G>, &'a mut T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -890,7 +910,7 @@ impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> FusedIter
 /// # Examples
 ///
 /// ```
-/// use typed_generational_arena::StandardArena;
+/// use generational_arena_im::StandardArena;
 ///
 /// let mut arena = StandardArena::new();
 /// let idx_1 = arena.insert("hello");
@@ -951,7 +971,9 @@ impl<T: Clone, Idx: ArenaIndex, G: FixedGenerationalIndex> FromIterator<T> for A
     }
 }
 
-impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::Index<Index<T, I, G>> for Arena<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::Index<Index<T, I, G>>
+    for Arena<T, I, G>
+{
     type Output = T;
 
     fn index(&self, index: Index<T, I, G>) -> &Self::Output {
@@ -959,7 +981,9 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::Index<Index<T, I, 
     }
 }
 
-impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::IndexMut<Index<T, I, G>> for Arena<T, I, G> {
+impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::IndexMut<Index<T, I, G>>
+    for Arena<T, I, G>
+{
     fn index_mut(&mut self, index: Index<T, I, G>) -> &mut Self::Output {
         self.get_mut(index).expect("No element at index")
     }
@@ -968,13 +992,11 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::IndexMut<Index<T, 
 #[cfg(feature = "rayon")]
 pub mod rayon_support {
     use super::*;
+    use im::vector::rayon::{ParIter as ImParIter, ParIterMut as ImParIterMut};
     use rayon::iter::{
-        IntoParallelRefIterator,
-        IntoParallelRefMutIterator,
-        IndexedParallelIterator,
+        IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator,
         ParallelIterator,
     };
-    use im::vector::rayon::{ParIter as ImParIter, ParIterMut as ImParIterMut};
 
     fn entry_to_ref<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex>(
         (index, entry): (usize, &'a Entry<T, I, G>),
@@ -1011,7 +1033,6 @@ pub mod rayon_support {
         >,
     }
 
-
     /// Parallel iterator over mutable references to arena elements.
     pub struct ParIterMut<'a, T, I, G>
     where
@@ -1024,7 +1045,6 @@ pub mod rayon_support {
             fn((usize, &'a mut Entry<T, I, G>)) -> Option<(Index<T, I, G>, &'a mut T)>,
         >,
     }
-
 
     impl<'a, T, I, G> core::fmt::Debug for ParIter<'a, T, I, G>
     where
