@@ -12,7 +12,7 @@ fn par_iter_matches_sequential() {
         arena.insert(i);
     }
     let seq: Vec<_> = arena.iter().map(|(_, v)| *v).collect();
-    let par: Vec<_> = (&arena).par_iter().map(|(_, v)| *v).collect();
+    let par: Vec<_> = arena.par_iter().map(|(_, v)| *v).collect();
 
     assert_eq!(seq, par);
 }
@@ -23,7 +23,7 @@ fn par_iter_mut_updates() {
     for i in 0..100 {
         arena.insert(i);
     }
-    (&mut arena).par_iter_mut().for_each(|(_, v)| *v *= 2);
+    arena.par_iter_mut().for_each(|(_, v)| *v *= 2);
     let values: Vec<_> = arena.iter().map(|(_, v)| *v).collect();
     assert_eq!(values, (0..100).map(|x| x * 2).collect::<Vec<_>>());
 }
