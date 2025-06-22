@@ -30,10 +30,7 @@ where
     I: ArenaIndex + Send + Sync + 'a,
     G: FixedGenerationalIndex + Send + Sync + 'a,
 {
-    inner: ::rayon::iter::FilterMap<
-        ::rayon::iter::Enumerate<ImParIter<'a, Entry<T, I, G>>>,
-        fn((usize, &'a Entry<T, I, G>)) -> Option<(Index<T, I, G>, &'a T)>,
-    >,
+    inner: ImParIter<'a, Entry<T, I, G>>,
 }
 
 /// Parallel iterator over mutable references to arena elements.
@@ -43,10 +40,7 @@ where
     I: ArenaIndex + Send + Sync + 'a,
     G: FixedGenerationalIndex + Send + Sync + 'a,
 {
-    inner: ::rayon::iter::FilterMap<
-        ::rayon::iter::Enumerate<ImParIterMut<'a, Entry<T, I, G>>>,
-        fn((usize, &'a mut Entry<T, I, G>)) -> Option<(Index<T, I, G>, &'a mut T)>,
-    >,
+    inner: ImParIterMut<'a, Entry<T, I, G>>,
 }
 
 impl<'a, T, I, G> core::fmt::Debug for ParIter<'a, T, I, G>
@@ -83,7 +77,10 @@ where
     where
         C: ::rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
     {
-        self.inner.drive_unindexed(consumer)
+        self.inner
+            .enumerate()
+            .filter_map(entry_to_ref::<T, I, G>)
+            .drive_unindexed(consumer)
     }
 }
 
@@ -99,7 +96,10 @@ where
     where
         C: ::rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
     {
-        self.inner.drive_unindexed(consumer)
+        self.inner
+            .enumerate()
+            .filter_map(entry_to_mut::<T, I, G>)
+            .drive_unindexed(consumer)
     }
 }
 
@@ -114,11 +114,7 @@ where
 
     fn into_par_iter(self) -> Self::Iter {
         ParIter {
-            inner: self
-                .items
-                .par_iter()
-                .enumerate()
-                .filter_map(entry_to_ref::<T, I, G>),
+            inner: self.items.par_iter(),
         }
     }
 }
@@ -134,11 +130,7 @@ where
 
     fn into_par_iter(self) -> Self::Iter {
         ParIterMut {
-            inner: self
-                .items
-                .par_iter_mut()
-                .enumerate()
-                .filter_map(entry_to_mut::<T, I, G>),
+            inner: self.items.par_iter_mut(),
         }
     }
 }
