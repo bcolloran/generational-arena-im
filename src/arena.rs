@@ -8,6 +8,8 @@ use core::{
 use im::vector::{ConsumingIter, Iter as ImIter, IterMut as ImIterMut};
 use im::Vector;
 
+pub mod rayon;
+
 ///
 /// [See the module-level documentation for example usage and motivation.](./index.html)
 #[derive(Clone, Debug)]
@@ -263,38 +265,6 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
             _ => None,
         }
     }
-
-    /// Get a pair of exclusive references to the elements at index `i1` and `i2` if it is in the
-    /// arena.
-    ///
-    /// If the element at index `i1` or `i2` is not in the arena, then `None` is returned for this
-    /// element.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `i1` and `i2` are pointing to the same item of the arena.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use generational_arena_im::StandardArena;
-    ///
-    /// let mut arena = StandardArena::new();
-    /// let idx1 = arena.insert(0);
-    /// let idx2 = arena.insert(1);
-    ///
-    /// // `get2_mut` is unavailable when using `im::Vector` storage.
-    /// ```
-    // pub fn get2_mut(
-    //     &mut self,
-    //     i1: Index<T, I, G>,
-    //     i2: Index<T, I, G>,
-    // ) -> (Option<&mut T>, Option<&mut T>) {
-    //     // This method relied on `Vec::split_at_mut` to obtain two mutable
-    //     // references simultaneously. `im::Vector` does not offer a safe
-    //     // equivalent, and implementing this behavior would require unsafe
-    //     // code, so it is disabled when using `im::Vector`.
-    // }
 
     /// Get the length of this arena.
     ///
@@ -988,5 +958,3 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::IndexMut<Index<T, 
         self.get_mut(index).expect("No element at index")
     }
 }
-
-pub mod rayon;
