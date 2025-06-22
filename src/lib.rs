@@ -161,7 +161,6 @@ extern crate num_traits;
 #[macro_use]
 extern crate cfg_if;
 extern crate im;
-#[cfg(feature = "rayon")]
 extern crate rayon;
 
 cfg_if! {
@@ -179,6 +178,8 @@ pub use presets::*;
 mod arena;
 mod generation;
 mod index;
+#[path = "rayon.rs"]
+mod rayon_support;
 
 pub use arena::{Arena, Drain, IntoIter, Iter, IterMut};
 pub use generation::{

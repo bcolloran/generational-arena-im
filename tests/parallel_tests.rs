@@ -1,4 +1,3 @@
-#![cfg(feature = "rayon")]
 
 extern crate generational_arena_im;
 extern crate rayon;
