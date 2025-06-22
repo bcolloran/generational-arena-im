@@ -1,9 +1,17 @@
 use super::*;
-use im::vector::rayon::{ParIter as ImParIter, ParIterMut as ImParIterMut};
+use im::vector::rayon::ParIterMut as ImParIterMut;
 use ::rayon::iter::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator,
-    IntoParallelRefMutIterator, ParallelIterator,
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator,
+    ParallelIterator,
 };
+use ::rayon::vec::IntoIter as VecParIter;
+cfg_if! {
+    if #[cfg(feature = "std")] {
+        use std::vec::Vec;
+    } else {
+        use alloc::vec::Vec;
+    }
+}
 
 fn entry_to_ref<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex>(
     (index, entry): (usize, &'a Entry<T, I, G>),
@@ -30,7 +38,7 @@ where
     I: ArenaIndex + Send + Sync + 'a,
     G: FixedGenerationalIndex + Send + Sync + 'a,
 {
-    inner: ImParIter<'a, Entry<T, I, G>>,
+    inner: VecParIter<(Index<T, I, G>, &'a T)>,
 }
 
 /// Parallel iterator over mutable references to arena elements.
@@ -77,10 +85,36 @@ where
     where
         C: ::rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
     {
-        self.inner
-            .enumerate()
-            .filter_map(entry_to_ref::<T, I, G>)
-            .drive_unindexed(consumer)
+        self.inner.drive_unindexed(consumer)
+    }
+
+    fn opt_len(&self) -> Option<usize> {
+        Some(self.inner.len())
+    }
+}
+
+impl<'a, T, I, G> IndexedParallelIterator for ParIter<'a, T, I, G>
+where
+    T: Clone + Send + Sync + 'a,
+    I: ArenaIndex + Send + Sync + 'a,
+    G: FixedGenerationalIndex + Send + Sync + 'a,
+{
+    fn drive<C>(self, consumer: C) -> C::Result
+    where
+        C: ::rayon::iter::plumbing::Consumer<Self::Item>,
+    {
+        self.inner.drive(consumer)
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    fn with_producer<CB>(self, callback: CB) -> CB::Output
+    where
+        CB: ::rayon::iter::plumbing::ProducerCallback<Self::Item>,
+    {
+        self.inner.with_producer(callback)
     }
 }
 
@@ -113,8 +147,14 @@ where
     type Iter = ParIter<'a, T, I, G>;
 
     fn into_par_iter(self) -> Self::Iter {
+        let data: Vec<_> = self
+            .items
+            .iter()
+            .enumerate()
+            .filter_map(entry_to_ref::<T, I, G>)
+            .collect();
         ParIter {
-            inner: self.items.par_iter(),
+            inner: data.into_par_iter(),
         }
     }
 }
