@@ -8,6 +8,8 @@ use core::{
 use im::vector::{ConsumingIter, Iter as ImIter, IterMut as ImIterMut};
 use im::Vector;
 
+pub mod rayon;
+
 ///
 /// [See the module-level documentation for example usage and motivation.](./index.html)
 #[derive(Clone, Debug)]
@@ -263,38 +265,6 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Arena<T, I, G> {
             _ => None,
         }
     }
-
-    /// Get a pair of exclusive references to the elements at index `i1` and `i2` if it is in the
-    /// arena.
-    ///
-    /// If the element at index `i1` or `i2` is not in the arena, then `None` is returned for this
-    /// element.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `i1` and `i2` are pointing to the same item of the arena.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use generational_arena_im::StandardArena;
-    ///
-    /// let mut arena = StandardArena::new();
-    /// let idx1 = arena.insert(0);
-    /// let idx2 = arena.insert(1);
-    ///
-    /// // `get2_mut` is unavailable when using `im::Vector` storage.
-    /// ```
-    // pub fn get2_mut(
-    //     &mut self,
-    //     i1: Index<T, I, G>,
-    //     i2: Index<T, I, G>,
-    // ) -> (Option<&mut T>, Option<&mut T>) {
-    //     // This method relied on `Vec::split_at_mut` to obtain two mutable
-    //     // references simultaneously. `im::Vector` does not offer a safe
-    //     // equivalent, and implementing this behavior would require unsafe
-    //     // code, so it is disabled when using `im::Vector`.
-    // }
 
     /// Get the length of this arena.
     ///
@@ -986,157 +956,5 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> ops::IndexMut<Index<T, 
 {
     fn index_mut(&mut self, index: Index<T, I, G>) -> &mut Self::Output {
         self.get_mut(index).expect("No element at index")
-    }
-}
-
-#[cfg(feature = "rayon")]
-pub mod rayon_support {
-    use super::*;
-    use im::vector::rayon::{ParIter as ImParIter, ParIterMut as ImParIterMut};
-    use rayon::iter::{
-        IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator,
-        ParallelIterator,
-    };
-
-    fn entry_to_ref<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex>(
-        (index, entry): (usize, &'a Entry<T, I, G>),
-    ) -> Option<(Index<T, I, G>, &'a T)> {
-        match entry {
-            Entry::Occupied { generation, value } => {
-                Some((Index::new(I::from_idx(index), *generation), value))
-            }
-            _ => None,
-        }
-    }
-
-    fn entry_to_mut<'a, T: Clone, I: ArenaIndex, G: FixedGenerationalIndex>(
-        (index, entry): (usize, &'a mut Entry<T, I, G>),
-    ) -> Option<(Index<T, I, G>, &'a mut T)> {
-        match entry {
-            Entry::Occupied { generation, value } => {
-                Some((Index::new(I::from_idx(index), *generation), value))
-            }
-            _ => None,
-        }
-    }
-
-    /// Parallel iterator over shared references to arena elements.
-    pub struct ParIter<'a, T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        inner: rayon::iter::FilterMap<
-            rayon::iter::Enumerate<ImParIter<'a, Entry<T, I, G>>>,
-            fn((usize, &'a Entry<T, I, G>)) -> Option<(Index<T, I, G>, &'a T)>,
-        >,
-    }
-
-    /// Parallel iterator over mutable references to arena elements.
-    pub struct ParIterMut<'a, T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        inner: rayon::iter::FilterMap<
-            rayon::iter::Enumerate<ImParIterMut<'a, Entry<T, I, G>>>,
-            fn((usize, &'a mut Entry<T, I, G>)) -> Option<(Index<T, I, G>, &'a mut T)>,
-        >,
-    }
-
-    impl<'a, T, I, G> core::fmt::Debug for ParIter<'a, T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.debug_struct("ParIter").finish()
-        }
-    }
-
-    impl<'a, T, I, G> core::fmt::Debug for ParIterMut<'a, T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.debug_struct("ParIterMut").finish()
-        }
-    }
-
-    impl<'a, T, I, G> ParallelIterator for ParIter<'a, T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        type Item = (Index<T, I, G>, &'a T);
-
-        fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where
-            C: rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
-        {
-            self.inner.drive_unindexed(consumer)
-        }
-    }
-
-    impl<'a, T, I, G> ParallelIterator for ParIterMut<'a, T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        type Item = (Index<T, I, G>, &'a mut T);
-
-        fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where
-            C: rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
-        {
-            self.inner.drive_unindexed(consumer)
-        }
-    }
-
-    impl<'a, T, I, G> IntoParallelRefIterator<'a> for Arena<T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        type Item = (Index<T, I, G>, &'a T);
-        type Iter = ParIter<'a, T, I, G>;
-
-        fn par_iter(&'a self) -> <Self as IntoParallelRefIterator<'a>>::Iter {
-            ParIter {
-                inner: self
-                    .items
-                    .par_iter()
-                    .enumerate()
-                    .filter_map(entry_to_ref::<T, I, G>),
-            }
-        }
-    }
-
-    impl<'a, T, I, G> IntoParallelRefMutIterator<'a> for Arena<T, I, G>
-    where
-        T: Clone + Send + Sync + 'a,
-        I: ArenaIndex + Send + Sync + 'a,
-        G: FixedGenerationalIndex + Send + Sync + 'a,
-    {
-        type Item = (Index<T, I, G>, &'a mut T);
-        type Iter = ParIterMut<'a, T, I, G>;
-
-        fn par_iter_mut(&'a mut self) -> <Self as IntoParallelRefMutIterator<'a>>::Iter {
-            ParIterMut {
-                inner: self
-                    .items
-                    .par_iter_mut()
-                    .enumerate()
-                    .filter_map(entry_to_mut::<T, I, G>),
-            }
-        }
     }
 }
