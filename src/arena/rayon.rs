@@ -151,7 +151,7 @@ where
         ParIter {
             focus: self.items.focus(),
             start: 0,
-            len: self.items.len(),
+            len: self.len,
         }
     }
 }
@@ -166,7 +166,7 @@ where
     type Iter = ParIterMut<'a, T, I, G>;
 
     fn into_par_iter(self) -> Self::Iter {
-        let len = self.items.len();
+        let len = self.len;
         let focus = self.items.focus_mut();
         ParIterMut {
             focus,
