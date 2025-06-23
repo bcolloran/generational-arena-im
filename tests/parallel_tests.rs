@@ -1,10 +1,7 @@
 extern crate generational_arena_im;
 extern crate rayon;
 use generational_arena_im::StandardArena as Arena;
-use rayon::iter::{
-    IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
-
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 #[test]
 fn par_iter_matches_sequential() {
     let mut arena = Arena::new();
