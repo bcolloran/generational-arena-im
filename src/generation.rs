@@ -1,7 +1,7 @@
-use core::ops::{Add, AddAssign};
 use core::default::Default;
+use core::ops::{Add, AddAssign};
 use nonzero_ext::{NonZero, NonZeroAble};
-use num_traits::{One, WrappingAdd, Zero};
+use num_traits::{One, ToPrimitive, WrappingAdd, Zero};
 
 /// A type which can be used as the index of a generation which may not be able to be incremented
 pub trait FixedGenerationalIndex: Copy + Eq {
@@ -21,6 +21,25 @@ pub trait GenerationalIndex: FixedGenerationalIndex {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct NonzeroGeneration<T: NonZeroAble> {
     gen: T::NonZero,
+}
+
+impl<T> NonzeroGeneration<T>
+where
+    T: NonZeroAble
+        + One
+        + Zero
+        + Copy
+        + Eq
+        + WrappingAdd
+        + From<<<T as NonZeroAble>::NonZero as NonZero>::Primitive>,
+    T::NonZero: PartialOrd + Eq + Copy,
+    <T::NonZero as NonZero>::Primitive: ToPrimitive,
+{
+    /// Get the current generation as a usize
+    #[inline(always)]
+    pub fn to_usize(&self) -> usize {
+        self.gen.get().to_usize().unwrap()
+    }
 }
 
 impl<T> FixedGenerationalIndex for NonzeroGeneration<T>
@@ -68,6 +87,25 @@ pub struct NonzeroWrapGeneration<T: NonZeroAble> {
     gen: T::NonZero,
 }
 
+impl<T> NonzeroWrapGeneration<T>
+where
+    T: NonZeroAble
+        + One
+        + Zero
+        + Copy
+        + Eq
+        + WrappingAdd
+        + From<<<T as NonZeroAble>::NonZero as NonZero>::Primitive>,
+    T::NonZero: PartialOrd + Eq + Copy,
+    <T::NonZero as NonZero>::Primitive: ToPrimitive,
+{
+    /// Get the current generation as a usize
+    #[inline(always)]
+    pub fn to_usize(&self) -> usize {
+        self.gen.get().to_usize().unwrap()
+    }
+}
+
 impl<T> FixedGenerationalIndex for NonzeroWrapGeneration<T>
 where
     T: NonZeroAble
@@ -101,6 +139,7 @@ where
         + WrappingAdd
         + From<<<T as NonZeroAble>::NonZero as NonZero>::Primitive>,
     T::NonZero: PartialOrd + Eq + Copy,
+    <T::NonZero as NonZero>::Primitive: ToPrimitive,
 {
     #[inline(always)]
     fn increment_generation(&mut self) {
@@ -172,4 +211,3 @@ impl FixedGenerationalIndex for DisableRemoval {
 }
 
 impl IgnoredGeneration for DisableRemoval {}
-
