@@ -1,8 +1,7 @@
 use super::*;
 use im::vector::{Focus, FocusMut, Iter as ImIter, IterMut as ImIterMut};
-use ::rayon::iter::plumbing::{bridge, Consumer, Producer, ProducerCallback};
-use ::rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};
-
+use rayon::iter::plumbing::{bridge, Consumer, Producer, ProducerCallback};
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 /// Parallel iterator over shared references to arena elements.
 pub struct ParIter<'a, T, I, G>
@@ -220,7 +219,13 @@ where
         loop {
             match self.inner.next() {
                 Some((_, &Entry::Free { .. })) => continue,
-                Some((i, &Entry::Occupied { generation, ref value })) => {
+                Some((
+                    i,
+                    &Entry::Occupied {
+                        generation,
+                        ref value,
+                    },
+                )) => {
                     self.len -= 1;
                     let idx = Index::new(I::from_idx(self.start + i), generation);
                     return Some((idx, value));
@@ -232,9 +237,9 @@ where
         }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
+    // fn size_hint(&self) -> (usize, Option<usize>) {
+    //     (self.len, Some(self.len))
+    // }
 }
 
 impl<'a, T, I, G> ExactSizeIterator for SeqIter<'a, T, I, G>
@@ -258,7 +263,13 @@ where
         loop {
             match self.inner.next_back() {
                 Some((_, &Entry::Free { .. })) => continue,
-                Some((i, &Entry::Occupied { generation, ref value })) => {
+                Some((
+                    i,
+                    &Entry::Occupied {
+                        generation,
+                        ref value,
+                    },
+                )) => {
                     self.len -= 1;
                     let idx = Index::new(I::from_idx(self.start + i), generation);
                     return Some((idx, value));
@@ -283,7 +294,13 @@ where
         loop {
             match self.inner.next() {
                 Some((_, &mut Entry::Free { .. })) => continue,
-                Some((i, &mut Entry::Occupied { generation, ref mut value })) => {
+                Some((
+                    i,
+                    &mut Entry::Occupied {
+                        generation,
+                        ref mut value,
+                    },
+                )) => {
                     self.len -= 1;
                     let idx = Index::new(I::from_idx(self.start + i), generation);
                     return Some((idx, value));
@@ -295,9 +312,9 @@ where
         }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
+    // fn size_hint(&self) -> (usize, Option<usize>) {
+    //     (self.len, Some(self.len))
+    // }
 }
 
 impl<'a, T, I, G> ExactSizeIterator for SeqIterMut<'a, T, I, G>
@@ -321,7 +338,13 @@ where
         loop {
             match self.inner.next_back() {
                 Some((_, &mut Entry::Free { .. })) => continue,
-                Some((i, &mut Entry::Occupied { generation, ref mut value })) => {
+                Some((
+                    i,
+                    &mut Entry::Occupied {
+                        generation,
+                        ref mut value,
+                    },
+                )) => {
                     self.len -= 1;
                     let idx = Index::new(I::from_idx(self.start + i), generation);
                     return Some((idx, value));

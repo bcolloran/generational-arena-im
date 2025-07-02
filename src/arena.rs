@@ -611,9 +611,9 @@ impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> Iterator for IntoIter<T
         }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
+    // fn size_hint(&self) -> (usize, Option<usize>) {
+    //     (self.len, Some(self.len))
+    // }
 }
 
 impl<T: Clone, I: ArenaIndex, G: FixedGenerationalIndex> DoubleEndedIterator for IntoIter<T, I, G> {
@@ -711,9 +711,9 @@ impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator
         }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
+    // fn size_hint(&self) -> (usize, Option<usize>) {
+    //     (self.len, Some(self.len))
+    // }
 }
 
 impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedIterator
@@ -824,9 +824,9 @@ impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> Iterator
         }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
+    // fn size_hint(&self) -> (usize, Option<usize>) {
+    //     (self.len, Some(self.len))
+    // }
 }
 
 impl<'a, T: Clone, I: 'a + ArenaIndex, G: 'a + FixedGenerationalIndex> DoubleEndedIterator
