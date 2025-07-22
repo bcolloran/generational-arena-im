@@ -106,6 +106,56 @@ where
     }
 }
 
+impl NonzeroWrapGeneration<u8> {
+    /// Get the current generation as a u8
+    #[inline(always)]
+    pub fn from_u8(value: u8) -> Self {
+        NonzeroWrapGeneration {
+            gen: value.into_nonzero().unwrap(),
+        }
+    }
+}
+
+impl NonzeroWrapGeneration<u16> {
+    /// Get the current generation as a u16
+    #[inline(always)]
+    pub fn from_u16(value: u16) -> Self {
+        NonzeroWrapGeneration {
+            gen: value.into_nonzero().unwrap(),
+        }
+    }
+}
+
+impl NonzeroWrapGeneration<u32> {
+    /// Get the current generation as a u16
+    #[inline(always)]
+    pub fn from_u32(value: u32) -> Self {
+        NonzeroWrapGeneration {
+            gen: value.into_nonzero().unwrap(),
+        }
+    }
+}
+
+impl NonzeroWrapGeneration<u64> {
+    /// Get the current generation as a u64
+    #[inline(always)]
+    pub fn from_u64(value: u64) -> Self {
+        NonzeroWrapGeneration {
+            gen: value.into_nonzero().unwrap(),
+        }
+    }
+}
+
+impl NonzeroWrapGeneration<usize> {
+    /// Get the current generation as a usize
+    #[inline(always)]
+    pub fn from_usize(value: usize) -> Self {
+        NonzeroWrapGeneration {
+            gen: value.into_nonzero().unwrap(),
+        }
+    }
+}
+
 impl<T> FixedGenerationalIndex for NonzeroWrapGeneration<T>
 where
     T: NonZeroAble
